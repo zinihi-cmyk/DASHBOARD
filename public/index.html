@@ -117,6 +117,7 @@
       <div class="nav-label">신상품 판매 데이터</div>
       <a class="active" data-v="all" onclick="nav(this)"><span class="ico">📊</span> 전체 조회</a>
       <a data-v="month" onclick="nav(this)"><span class="ico">📅</span> 월별 조회</a>
+      <a data-v="week" onclick="nav(this)"><span class="ico">🗓️</span> 주별 조회</a>
       <a data-v="day" onclick="nav(this)"><span class="ico">📆</span> 일별 조회</a>
       <a data-v="soon" onclick="nav(this)"><span class="ico">🚀</span> 출시 예정 상품</a>
       <div class="nav-label">상품별 분석</div>
@@ -322,7 +323,7 @@ function viewAll(){
     <td class="${d.costrate<50?'ok':d.costrate<70?'warn':'bad'}">${pct(d.costrate)}</td>
     <td class="${d.margin>=30?'ok':d.margin>=15?'warn':'bad'}">${pct(d.margin)}</td>
     <td class="mono">${won(g)}</td><td class="${ach>=100?'ok':'warn'}">${ach?ach.toFixed(0)+'%':'-'}</td></tr>`;}).join('');
-  return `<div class="tabs"><button class="tab on">전체 조회</button><button class="tab" onclick="go('month')">월별 조회</button><button class="tab" onclick="go('day')">일별 조회</button><span class="spacer"></span><button class="tab" style="background:var(--slate-soft);color:var(--ink)" onclick="go('upload')">📤 업로드</button></div>
+  return `<div class="tabs"><button class="tab on">전체 조회</button><button class="tab" onclick="go('month')">월별 조회</button><button class="tab" onclick="go('week')">주별 조회</button><button class="tab" onclick="go('day')">일별 조회</button><span class="spacer"></span><button class="tab" style="background:var(--slate-soft);color:var(--ink)" onclick="go('upload')">📤 업로드</button></div>
   <div class="kpis">
     <div class="kpi" style="--accent:var(--brand)"><div class="lab">💵 총 판매가 (VAT 포함가)</div><div class="val">${won(t.s)}</div><div class="sub">실판매 합계</div></div>
     <div class="kpi" style="--accent:var(--amber)"><div class="lab">📦 총 상품원가</div><div class="val">${won(t.c)}</div><div class="sub">원가율 ${pct(t.cr)}</div></div>
@@ -392,7 +393,7 @@ function viewMonth(){
   const series=PRODUCTS.map((k,i)=>({name:k,color:PALETTE[i%5],points:labels.map(l=>{const mm=DATA[k].months.find(r=>r.k.slice(5)+'월'===l);return{y:mm?mm.sales:0};})}));
   series.unshift({name:'전체',color:'#1f2a44',points:m.map(r=>({y:r.sales}))});
   // 인포그래픽: 월간 수량/금액/원가율
-  return `<div class="tabs"><button class="tab" onclick="go('all')">전체 조회</button><button class="tab on">월별 조회</button><button class="tab" onclick="go('day')">일별 조회</button></div>
+  return `<div class="tabs"><button class="tab" onclick="go('all')">전체 조회</button><button class="tab on">월별 조회</button><button class="tab" onclick="go('week')">주별 조회</button><button class="tab" onclick="go('day')">일별 조회</button></div>
   <div class="panel"><h3>📈 월간 매출 추이 (상품별)</h3><div class="pd">선 = 상품별 월 판매가 · 검정 = 전체 합계 · 꼭짓점 숫자 = 각 상품·전체 월매출 · 마우스 올리면 상세</div>
     ${lineChart(series,{labels,h:260,valueSeries:'all',valueFmt:won,tip:true,tipFmt:won,tipDate:i=>labels[i]})}${legend(series)}</div>
   <div class="grid2">
@@ -475,10 +476,10 @@ function viewDay(){
   </div>`;
 
   if(d.length===0){
-    return `<div class="tabs"><button class="tab" onclick="go('all')">전체 조회</button><button class="tab" onclick="go('month')">월별 조회</button><button class="tab on">일별 조회</button></div>${datePanel}<div class="panel"><div class="pd" style="text-align:center;padding:30px">선택한 기간에 데이터가 없어요. 기간을 다시 설정해 주세요.</div></div>`;
+    return `<div class="tabs"><button class="tab" onclick="go('all')">전체 조회</button><button class="tab" onclick="go('month')">월별 조회</button><button class="tab" onclick="go('week')">주별 조회</button><button class="tab on">일별 조회</button></div>${datePanel}<div class="panel"><div class="pd" style="text-align:center;padding:30px">선택한 기간에 데이터가 없어요. 기간을 다시 설정해 주세요.</div></div>`;
   }
 
-  return `<div class="tabs"><button class="tab" onclick="go('all')">전체 조회</button><button class="tab" onclick="go('month')">월별 조회</button><button class="tab on">일별 조회</button></div>
+  return `<div class="tabs"><button class="tab" onclick="go('all')">전체 조회</button><button class="tab" onclick="go('month')">월별 조회</button><button class="tab" onclick="go('week')">주별 조회</button><button class="tab on">일별 조회</button></div>
   ${datePanel}
   <div class="panel"><h3>📈 일간 매출 추이 (상품별)</h3><div class="pd">${rangeLabel} · 선=상품별, 검정=전체 · 꼭대기 숫자=전체 일매출 · 마우스 올리면 상세</div>
     ${lineChart(series,{labels,h:230,rotate:true,valueSeries:0,valueFmt:won,tip:true,tipFmt:won,tipDate:i=>{const k=d[i]?d[i].k:'';const wd=['일','월','화','수','목','금','토'][new Date(k).getDay()];return k+'('+wd+')';}})}${legend(series)}</div>
@@ -491,6 +492,76 @@ function viewDay(){
     <tbody>${d.slice().reverse().map(r=>{const c=r.holiday?'holi':r.sat?'sat':'';return `<tr><td class="${c}">${r.k.slice(5)} ${dow(r.k)}</td><td class="mono ${c}">${r.qty.toLocaleString()}개</td><td class="mono ${c}">${won(r.sales)}</td><td class="${r.costrate<50?'ok':'warn'}">${r.costrate}%</td></tr>`;}).join('')}</tbody></table></div>`;
 }
 function dow(d){const n=['일','월','화','수','목','금','토'];return '('+n[new Date(d).getDay()]+')';}
+
+/* ---------- VIEW: 주별 (주간 대시보드 · 상품별) ---------- */
+function viewWeek(){
+  const tabs=`<div class="tabs"><button class="tab" onclick="go('all')">전체 조회</button><button class="tab" onclick="go('month')">월별 조회</button><button class="tab on">주별 조회</button><button class="tab" onclick="go('day')">일별 조회</button></div>`;
+  const weekKey=s=>{const dt=new Date(s);const day=(dt.getDay()+6)%7;const mon=new Date(dt);mon.setDate(dt.getDate()-day);return mon.toISOString().slice(0,10);};
+  const weekLabel=wk=>{const dt=new Date(wk);const end=new Date(dt);end.setDate(dt.getDate()+6);const f=x=>(x.getMonth()+1)+'/'+x.getDate();return f(dt)+'~'+f(end);};
+  const weekShort=wk=>{const dt=new Date(wk);return (dt.getMonth()+1)+'/'+dt.getDate();};
+  // 주차별 집계 (전체 + 상품별), 월~일 기준
+  const wmap={};
+  PRODUCTS.forEach(k=>{(DATA[k].days_full||DATA[k].days||[]).forEach(r=>{const w=weekKey(r.k);
+    if(!wmap[w])wmap[w]={k:w,sales:0,cost:0,qty:0,perProd:{}};
+    if(!wmap[w].perProd[k])wmap[w].perProd[k]={sales:0,cost:0,qty:0};
+    const pp=wmap[w].perProd[k];pp.sales+=r.sales;pp.cost+=(r.cost||0);pp.qty+=r.qty;
+    wmap[w].sales+=r.sales;wmap[w].cost+=(r.cost||0);wmap[w].qty+=r.qty;});});
+  let weeks=Object.values(wmap).sort((a,b)=>a.k<b.k?-1:1).map(w=>({...w,costrate:w.sales?+(w.cost/w.sales*100).toFixed(1):0}));
+  if(!weeks.length) return tabs+`<div class="panel"><div class="pd" style="text-align:center;padding:30px">표시할 데이터가 없어요.</div></div>`;
+  const labels=weeks.map(w=>weekLabel(w.k));
+  const rot=weeks.length>10;
+  // 시리즈 (상품별 + 전체)
+  const salesSeries=PRODUCTS.map((k,i)=>({name:k,color:PALETTE[i%5],points:weeks.map(w=>({y:w.perProd[k]?w.perProd[k].sales:0}))}));
+  salesSeries.unshift({name:'전체',color:'#1f2a44',points:weeks.map(w=>({y:w.sales}))});
+  const qtySeries=PRODUCTS.map((k,i)=>({name:k,color:PALETTE[i%5],points:weeks.map(w=>({y:w.perProd[k]?w.perProd[k].qty:0}))}));
+  qtySeries.unshift({name:'전체',color:'#1f2a44',points:weeks.map(w=>({y:w.qty}))});
+  const crSeries=PRODUCTS.map((k,i)=>({name:k,color:PALETTE[i%5],points:weeks.map(w=>({y:(w.perProd[k]&&w.perProd[k].sales)?+(w.perProd[k].cost/w.perProd[k].sales*100).toFixed(1):0}))}));
+  // 전주 대비 화살표
+  const dpct=(a,b)=>(b?(a-b)/b*100:null);
+  const arrow=v=>v==null?'<span style="color:var(--muted)">신규</span>':(v>=0?`<span style="color:var(--green)">▲ ${v.toFixed(1)}%</span>`:`<span style="color:var(--red)">▼ ${Math.abs(v).toFixed(1)}%</span>`);
+  // 최근 주 요약 KPI
+  const last=weeks[weeks.length-1], prev=weeks[weeks.length-2];
+  const kpi=`<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi" style="--accent:var(--brand)"><div class="lab">📅 최근 주 매출 (${weekLabel(last.k)})</div><div class="val" style="font-size:20px">${won(last.sales)}</div><div class="sub">전주대비 ${arrow(dpct(last.sales,prev&&prev.sales))}</div></div>
+    <div class="kpi" style="--accent:var(--purple)"><div class="lab">📦 최근 주 수량</div><div class="val" style="font-size:20px">${last.qty.toLocaleString()}개</div><div class="sub">전주대비 ${arrow(dpct(last.qty,prev&&prev.qty))}</div></div>
+    <div class="kpi" style="--accent:var(--amber)"><div class="lab">📊 최근 주 원가율</div><div class="val" style="font-size:20px">${last.costrate}%</div><div class="sub">상품이익률 ${(100-last.costrate).toFixed(1)}%</div></div>
+    <div class="kpi" style="--accent:var(--green)"><div class="lab">💰 최근 주 이익</div><div class="val" style="font-size:20px">${won(last.sales-last.cost)}</div><div class="sub">총 ${weeks.length}개 주차 집계</div></div>
+  </div>`;
+  // 상품별 주간 카드 (각 상품 개별)
+  const prodCards=PRODUCTS.map((k,i)=>{
+    const col=PALETTE[i%5];
+    const allw=weeks.map(w=>({k:w.k,...(w.perProd[k]||{sales:0,cost:0,qty:0})}));
+    let f=allw.findIndex(r=>r.sales>0||r.qty>0); if(f<0)f=0;
+    const rows=allw.slice(f).map((r,idx,a)=>{const pv=a[idx-1];const wow=(pv&&pv.sales)?((r.sales-pv.sales)/pv.sales*100):null;return {...r,costrate:r.sales?+(r.cost/r.sales*100).toFixed(1):0,wow};});
+    const bar=barChart(rows,r=>r.sales,r=>weekShort(r.k),{colFn:()=>col,valLab:rows.length<=13?(r=>won(r.sales)):null,valSize:9,valColor:'var(--muted)',h:170});
+    const body=rows.slice().reverse().map(r=>`<tr><td>${weekLabel(r.k)}</td><td class="mono">${r.qty.toLocaleString()}개</td><td class="mono">${won(r.sales)}</td><td class="${r.costrate<50?'ok':r.costrate<70?'warn':'bad'}">${r.costrate}%</td><td>${arrow(r.wow)}</td></tr>`).join('');
+    const lastw=rows[rows.length-1];
+    return `<div class="panel"><h3><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${col};margin-right:8px;vertical-align:middle"></span>${k} · 주간 추이</h3>
+      <div class="pd">최근 주 매출 ${won(lastw.sales)} · ${rows.length}개 주차 · 전주대비 ${arrow(lastw.wow)}</div>
+      ${bar}
+      <table style="margin-top:12px"><thead><tr><th>주차(월~일)</th><th>수량</th><th>매출</th><th>원가율</th><th>전주대비</th></tr></thead><tbody>${body}</tbody></table></div>`;
+  }).join('');
+  // 원가율 y축 범위
+  const allcr=crSeries.flatMap(s=>s.points.map(p=>p.y)).filter(v=>v>0);
+  const crLo=allcr.length?Math.max(0,Math.floor((Math.min(...allcr)-8)/5)*5):0;
+  const crHi=allcr.length?Math.ceil((Math.max(...allcr)+8)/5)*5:100;
+
+  return `${tabs}
+  ${kpi}
+  <div class="panel"><h3>📈 주간 매출 추이 (상품별)</h3><div class="pd">선=상품별 주간 매출 · 검정=전체 합계 · 꼭짓점 숫자=전체 주매출 · 마우스 올리면 상세 · 주차는 월~일 기준</div>
+    ${lineChart(salesSeries,{labels,h:250,rotate:rot,valueSeries:0,valueFmt:won,tip:true,tipFmt:won,tipDate:i=>labels[i]})}${legend(salesSeries)}</div>
+  <div class="panel"><h3>📊 주간 판매금액 비교 (상품별 막대)</h3><div class="pd">막대=상품별 주간 매출 · 막대 위 숫자=주간 전체 합계 · 마우스 올리면 상세</div>
+    ${groupBarChart(salesSeries,{labels:weeks.map(w=>weekShort(w.k)),h:260,w:Math.max(860,weeks.length*64)})}${legend(salesSeries)}</div>
+  <div class="panel"><h3>📦 주간 판매수량 (상품별)</h3><div class="pd">선=상품별 주간 수량 · 검정=전체 · 마우스 올리면 상세</div>
+    ${lineChart(qtySeries,{labels,h:230,rotate:rot,valueSeries:0,valueFmt:v=>v.toLocaleString()+'개',tip:true,tipFmt:v=>v.toLocaleString()+'개',tipDate:i=>labels[i]})}${legend(qtySeries)}</div>
+  <div class="panel"><h3>🧩 주간 원가율 추이 (상품별)</h3><div class="pd">선=상품별 주간 원가율 · 낮을수록 좋음 · 마우스 올리면 상세</div>
+    ${lineChart(crSeries,{labels,h:250,rotate:rot,yMin:crLo,yMax:crHi,yAxisFmt:v=>v.toFixed(0)+'%',tip:true,tipFmt:v=>v>0?v+'%':'-',tipDate:i=>labels[i]})}${legend(PRODUCTS.map((k,i)=>({name:k,color:PALETTE[i%5]})))}</div>
+  <div class="panel"><h3>📋 주간 종합 (전상품)</h3><div class="pd">최신 주차순 · 주차는 월~일 기준</div>
+    <table><thead><tr><th>주차</th><th>판매수량</th><th>판매금액</th><th>상품원가</th><th>원가율</th><th>이익</th></tr></thead>
+    <tbody>${weeks.slice().reverse().map(w=>`<tr><td>${weekLabel(w.k)}</td><td class="mono">${w.qty.toLocaleString()}개</td><td class="mono">${won(w.sales)}</td><td class="mono">${won(w.cost)}</td><td class="${w.costrate<50?'ok':w.costrate<70?'warn':'bad'}">${w.costrate}%</td><td class="mono">${won(w.sales-w.cost)}</td></tr>`).join('')}</tbody></table></div>
+  <div class="pt" style="margin:26px 0 4px;font-size:16px">🧩 상품별 주간 대시보드</div>
+  ${prodCards}`;
+}
 
 /* ---------- VIEW: 상품별 대시보드 (레퍼런스 레이아웃) ---------- */
 let prodPick=null;
@@ -922,7 +993,7 @@ function viewTeam(){
 
 function viewUpload(){return `<div class="panel"><h3>📤 엑셀 업로드 안내</h3><div style="font-size:13.5px;line-height:1.9;color:var(--slate)">• 같은 상품 다시 올리면 <b>정정(덮어쓰기)</b>, 새 상품은 <b>추가</b><br>• 상품원가는 <b>AO열</b>, 체험단(코드1=팬슈머마케팅팀)은 자동 제외<br>• 원가율·상품이익률·런칭일 자동 계산 (판매가는 VAT 포함가)<br>• 💾 업로드분은 <b>이 브라우저에 자동 저장</b>되어 새로고침해도 유지돼요</div></div>`;}
 
-const VIEWS={all:viewAll,month:viewMonth,day:viewDay,soon:viewSoon,prod:viewProd,upload:viewUpload,team:viewTeam};
+const VIEWS={all:viewAll,month:viewMonth,week:viewWeek,day:viewDay,soon:viewSoon,prod:viewProd,upload:viewUpload,team:viewTeam};
 let currentView='all';
 function render(v){currentView=v;document.getElementById('content').innerHTML=VIEWS[v]();window.scrollTo(0,0);}
 function nav(el){document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));el.classList.add('active');render(el.dataset.v);}
